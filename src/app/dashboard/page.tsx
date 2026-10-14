@@ -54,7 +54,7 @@ export default function CitizenDashboardPage() {
       <div className="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto">
         <Sidebar role="CITIZEN" />
 
-        <main className="flex-1 p-6 sm:p-8 space-y-8">
+        <main id="main-content" tabIndex={-1} className="flex-1 p-6 sm:p-8 space-y-8 focus:outline-none">
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-teal-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div>

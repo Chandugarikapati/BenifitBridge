@@ -5,7 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "test": "node --test src/__tests__/**/*.test.js",
+    "test:unit": "node --test src/__tests__/**/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage src/__tests__/**/*.test.js",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:generate": "prisma generate"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -39,7 +39,7 @@ export default function HowItWorksPage() {
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">
       <Navbar />
 
-      <main className="flex-1 py-12 sm:py-16">
+      <main id="main-content" tabIndex={-1} className="flex-1 py-12 sm:py-16 focus:outline-none">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center max-w-3xl mx-auto mb-16">

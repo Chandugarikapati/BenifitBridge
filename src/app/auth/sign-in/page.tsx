@@ -207,7 +207,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">
       <Navbar />
-      <main className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 focus:outline-none">
         <Suspense fallback={<div className="p-8 text-center text-xs text-slate-500">Loading sign in...</div>}>
           <SignInForm />
         </Suspense>

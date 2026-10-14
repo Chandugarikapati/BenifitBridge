@@ -52,7 +52,7 @@ export default function SchemesPage() {
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">
       <Navbar />
 
-      <main className="flex-1 py-10 sm:py-14">
+      <main id="main-content" tabIndex={-1} className="flex-1 py-10 sm:py-14 focus:outline-none">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
@@ -75,6 +75,7 @@ export default function SchemesPage() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
+                aria-label="Search welfare schemes by name, keyword, or ministry"
                 placeholder="Search by scheme name, keywords, ministry, or beneficiary group..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -83,6 +84,7 @@ export default function SchemesPage() {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
+                  aria-label="Clear search input"
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                 >
                   <X className="w-4 h-4" />

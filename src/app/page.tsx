@@ -26,7 +26,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-[#f8fafc]">
       <Navbar />
 
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-gradient-to-b from-teal-950 via-slate-900 to-slate-900 text-white pt-16 pb-24 sm:pt-24 sm:pb-32">
           {/* Subtle background glow */}

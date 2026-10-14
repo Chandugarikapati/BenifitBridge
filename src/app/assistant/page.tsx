@@ -100,7 +100,7 @@ export default function AssistantPage() {
       <div className="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto">
         <Sidebar role="CITIZEN" />
 
-        <main className="flex-1 p-4 sm:p-8 flex flex-col h-[calc(100vh-4rem)]">
+        <main id="main-content" tabIndex={-1} className="flex-1 p-4 sm:p-8 flex flex-col h-[calc(100vh-4rem)] focus:outline-none">
           {/* Header */}
           <div className="mb-4">
             <div className="flex items-center gap-2">
@@ -120,7 +120,11 @@ export default function AssistantPage() {
           {/* Chat Container */}
           <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col overflow-hidden">
             {/* Messages Scroll Area */}
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
+            <div
+              aria-live="polite"
+              aria-label="Welfare assistant conversation history"
+              className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6"
+            >
               {messages.map((m, idx) => (
                 <div
                   key={idx}
@@ -146,7 +150,7 @@ export default function AssistantPage() {
                     {/* Source Citations */}
                     {m.sources && m.sources.length > 0 && (
                       <div className="mt-4 pt-3 border-t border-slate-200/60 text-xs">
-                        <p className="font-bold text-slate-700 text-[11px] uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                        <p className="font-bold text-slate-700 text-[11px] uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
                           <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
                           <span>Verified Source Links:</span>
                         </p>
@@ -220,6 +224,7 @@ export default function AssistantPage() {
               >
                 <input
                   type="text"
+                  aria-label="Your inquiry message regarding welfare benefits"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask any question about schemes, rules, income limits, or required certificates..."
