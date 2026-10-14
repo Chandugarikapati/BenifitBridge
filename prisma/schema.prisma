@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CITIZEN
+  NGO_WORKER
+  ADMIN
+}
+
+enum OrgRole {
+  ADMIN
+  CASE_WORKER
+}
+
+enum SchemeStatus {
+  DRAFT
+  UNDER_REVIEW
+  PUBLISHED
+  EXPIRED
+}
+
+enum MatchStatus {
+  MATCH
+  DOES_NOT_MATCH
+  UNKNOWN
+  REQUIRES_HUMAN_REVIEW
+}
+
+enum CaseStatus {
+  DRAFT
+  PREPARING_DOCUMENTS
+  READY_TO_SUBMIT
+  SUBMITTED
+  UNDER_OFFICIAL_REVIEW
+  APPROVED
+  REJECTED
+  CLOSED
+}
+
+enum CasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ReportedOutcome {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum VerifiedOutcome {
+  UNVERIFIED
+  CONFIRMED_APPROVED
+  CONFIRMED_REJECTED
+}
+
+enum RuleOperator {
+  EQUALS
+  NOT_EQUALS
+  GREATER_THAN_EQUAL
+  LESS_THAN_EQUAL
+  IN_LIST
+  BOOLEAN
+}
+
+enum EventType {
+  STATUS_CHANGE
+  NOTE_ADDED
+  ASSIGNMENT_CHANGE
+  CHECKLIST_UPDATE
+  OUTCOME_REPORTED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  REASSIGNED
+  COMPLETED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  fullName      String
+  role          Role      @default(CITIZEN)
+  phone         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile             BeneficiaryProfile?
+  consents            ConsentRecord[]
+  memberships         OrganizationMembership[]
+  cases               ApplicationCase[]          @relation("CitizenCases")
+  assignedCases       CaseAssignment[]           @relation("WorkerAssignments")
+  caseEvents          CaseEvent[]                @relation("ActorEvents")
+  followUpTasks       FollowUpTask[]             @relation("UserTasks")
+  publishedVersions   SchemeVersion[]            @relation("PublishedVersions")
+  verifications       SourceVerification[]       @relation("UserVerifications")
+  auditLogs           AuditLog[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Organization {
+  id                 String    @id @default(uuid())
+  name               String
+  slug               String    @unique
+  registrationNumber String?
+  contactEmail       String
+  contactPhone       String?
+  address            String?
+  isVerified         Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  memberships  OrganizationMembership[]
+  cases        ApplicationCase[]
+  tasks        FollowUpTask[]
+
+  @@index([slug])
+}
+
+model OrganizationMembership {
+  id             String        @id @default(uuid())
+  userId         String
+  organizationId String
+  role           OrgRole       @default(CASE_WORKER)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model BeneficiaryProfile {
+  id                      String    @id @default(uuid())
+  userId                  String    @unique
+  dateOfBirth             DateTime?
+  age                     Int?
+  gender                  String?   // "female", "male", "other"
+  state                   String?
+  district                String?
+  pinCode                 String?
+  annualIncome            Float?
+  employmentStatus        String?   // "unemployed", "employed", "self_employed", "student", "farmer", "retired"
+  occupation              String?
+  casteCategory           String?   // "general", "obc", "sc", "st", "other"
+  disabilityStatus        Boolean   @default(false)
+  disabilityPercentage    Int?
+  isStudent               Boolean   @default(false)
+  educationLevel          String?   // "primary", "secondary", "higher_secondary", "graduate", "post_graduate"
+  maritalStatus           String?   // "single", "married", "widowed", "divorced"
+  householdSize           Int?
+  isRural                 Boolean   @default(false)
+  hasBPLCard              Boolean   @default(false)
+  hasAadhaarCard          Boolean   @default(true)
+  hasRationCard           Boolean   @default(false)
+  hasIncomeCertificate   Boolean   @default(false)
+  hasDisabilityCertificate Boolean @default(false)
+  hasCasteCertificate    Boolean   @default(false)
+  hasBankPassbook         Boolean   @default(true)
+  extraAttributes         String?   // JSON object with additional attributes
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([state])
+  @@index([casteCategory])
+}
+
+model ConsentRecord {
+  id          String    @id @default(uuid())
+  userId      String
+  purpose     String    // e.g. "ELIGIBILITY_ASSESSMENT", "APPLICATION_ASSISTANCE", "NGO_CASE_MANAGEMENT"
+  granted     Boolean   @default(true)
+  consentText String
+  ipAddress   String?
+  userAgent   String?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([purpose])
+}
+
+model Scheme {
+  id                     String        @id @default(uuid())
+  slug                   String        @unique
+  name                   String
+  shortDescription       String
+  fullDescription        String
+  category               String        // "Health", "Education & Scholarship", "Agriculture & Farming", "Pensions & Senior Citizens", "Housing & Shelter", "Social Welfare & Disability", "Women & Child Development"
+  targetBeneficiaries    String
+  jurisdiction           String        // "Central", "State"
+  stateOrUnionTerritory  String?       // "All India", "Maharashtra", "Karnataka", "Delhi", etc.
+  ministryOrDepartment   String
+  officialUrl            String
+  applicationPortalUrl   String?
+  helplineNumber         String?
+  benefitType            String        // "Direct Cash Transfer", "Subsidy", "Health Insurance", "Scholarship", "Pension"
+  estimatedBenefitAmount String?       // e.g. "₹6,000 / year", "Up to ₹5,00,000 cover"
+  applicationMode        String        @default("ONLINE_OR_OFFLINE")
+  processingTimeDays     Int?
+  status                 SchemeStatus  @default(PUBLISHED)
+  isDemo                 Boolean       @default(true)
+  lastVerifiedAt         DateTime      @default(now())
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  versions       SchemeVersion[]
+  rules          EligibilityRule[]
+  documents      DocumentRequirement[]
+  matches        SchemeMatch[]
+  cases          ApplicationCase[]
+  verifications  SourceVerification[]
+
+  @@index([slug])
+  @@index([category])
+  @@index([jurisdiction])
+  @@index([status])
+}
+
+model SchemeVersion {
+  id                String    @id @default(uuid())
+  schemeId          String
+  versionNumber     Int
+  changeSummary     String
+  snapshotJson      String    @db.Text
+  publishedByUserId String?
+  createdAt         DateTime  @default(now())
+
+  scheme      Scheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  publishedBy User?  @relation("PublishedVersions", fields: [publishedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([schemeId])
+}
+
+model EligibilityRule {
+  id                 String       @id @default(uuid())
+  schemeId           String
+  criterionName      String
+  operator           RuleOperator
+  fieldKey           String       // e.g. "annualIncome", "age", "gender", "casteCategory", "state", "disabilityStatus"
+  expectedValue      String       // e.g. "300000", "18", "female", "sc,st,obc"
+  explanation        String
+  isMandatory        Boolean      @default(true)
+  sourceReferenceUrl  String?
+  sourceReferenceText String?
+  createdAt          DateTime     @default(now())
+
+  scheme Scheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+
+  @@index([schemeId])
+  @@index([fieldKey])
+}
+
+model DocumentRequirement {
+  id                    String    @id @default(uuid())
+  schemeId              String
+  documentName          String
+  description           String
+  issuingAuthority      String
+  isMandatory           Boolean   @default(true)
+  alternativeDocuments  String?
+  sampleDocumentUrl     String?
+  verificationMethod    String?
+  createdAt             DateTime  @default(now())
+
+  scheme         Scheme          @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  checklistItems ChecklistItem[]
+
+  @@index([schemeId])
+}
+
+model SchemeMatch {
+  id                     String      @id @default(uuid())
+  userId                 String
+  schemeId               String
+  overallMatchStatus     MatchStatus
+  matchScore             Int         // 0 to 100
+  matchedCriteriaCount   Int
+  totalCriteriaCount     Int
+  missingInformationKeys String?     // JSON array
+  criteriaEvaluationJson String      @db.Text
+  officialSourceUrl      String?
+  evaluatedAt            DateTime    @default(now())
+
+  scheme Scheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([schemeId])
+  @@index([overallMatchStatus])
+}
+
+model ApplicationCase {
+  id                          String          @id @default(uuid())
+  caseNumber                  String          @unique
+  userId                      String
+  schemeId                    String
+  organizationId              String?
+  status                      CaseStatus      @default(DRAFT)
+  priority                    CasePriority    @default(MEDIUM)
+  submissionReportedAt        DateTime?
+  officialApplicationReference String?
+  notes                       String?         @db.Text
+  reportedOutcome             ReportedOutcome @default(PENDING)
+  verifiedOutcome             VerifiedOutcome @default(UNVERIFIED)
+  reportedOutcomeNotes        String?
+  outcomeReportedAt           DateTime?
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+
+  user         User               @relation("CitizenCases", fields: [userId], references: [id], onDelete: Cascade)
+  scheme       Scheme             @relation(fields: [schemeId], references: [id], onDelete: Restrict)
+  organization Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  checklist    ChecklistItem[]
+  assignments  CaseAssignment[]
+  events       CaseEvent[]
+  tasks        FollowUpTask[]
+
+  @@index([userId])
+  @@index([schemeId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([caseNumber])
+}
+
+model ChecklistItem {
+  id                    String               @id @default(uuid())
+  caseId                String
+  documentRequirementId String?
+  title                 String
+  description           String?
+  isMandatory           Boolean              @default(true)
+  isCompleted           Boolean              @default(false)
+  completedAt           DateTime?
+  notes                 String?
+  filePlaceholderName   String?
+  issuingAuthority      String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  case                ApplicationCase      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documentRequirement DocumentRequirement? @relation(fields: [documentRequirementId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([documentRequirementId])
+}
+
+model CaseAssignment {
+  id               String           @id @default(uuid())
+  caseId           String
+  assignedToUserId String
+  assignedByUserId String?
+  assignedAt       DateTime         @default(now())
+  status           AssignmentStatus @default(ACTIVE)
+  notes            String?
+
+  case       ApplicationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  assignedTo User            @relation("WorkerAssignments", fields: [assignedToUserId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([assignedToUserId])
+  @@index([status])
+}
+
+model CaseEvent {
+  id          String    @id @default(uuid())
+  caseId      String
+  actorUserId String?
+  actorRole   String?
+  eventType   EventType
+  detailsJson String    @db.Text
+  createdAt   DateTime  @default(now())
+
+  case  ApplicationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  actor User?           @relation("ActorEvents", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([eventType])
+}
+
+model FollowUpTask {
+  id               String       @id @default(uuid())
+  caseId           String?
+  organizationId   String?
+  assignedToUserId String?
+  title            String
+  description      String?
+  dueDate          DateTime?
+  isCompleted      Boolean      @default(false)
+  completedAt      DateTime?
+  priority         CasePriority @default(MEDIUM)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  case         ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  organization Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo   User?            @relation("UserTasks", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([organizationId])
+  @@index([assignedToUserId])
+  @@index([isCompleted])
+}
+
+model SourceVerification {
+  id                       String    @id @default(uuid())
+  schemeId                 String
+  verifiedByUserId         String?
+  verificationDate         DateTime  @default(now())
+  verificationNotes        String
+  officialGazetteReference String?
+  sourceUrl                String
+  isConfirmedValid         Boolean   @default(true)
+  nextReviewDate           DateTime?
+  createdAt                DateTime  @default(now())
+
+  scheme     Scheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  verifiedBy User?  @relation("UserVerifications", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([schemeId])
+  @@index([isConfirmedValid])
+}
+
+model AIInteractionMetadata {
+  id                String    @id @default(uuid())
+  userId            String?
+  promptType        String
+  groundedSchemeIds String?
+  uncertaintyFlag   Boolean   @default(false)
+  fallbackTriggered Boolean   @default(false)
+  modelUsed         String
+  latencyMs         Int?
+  promptTokens      Int?
+  responseTokens    Int?
+  createdAt         DateTime  @default(now())
+
+  @@index([userId])
+  @@index([promptType])
+  @@index([fallbackTriggered])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  userRole    String?
+  action      String
+  entityType  String
+  entityId    String?
+  ipAddress   String?
+  detailsJson String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+}
