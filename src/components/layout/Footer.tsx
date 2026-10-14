@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { Shield, ExternalLink, HeartHandshake, Info } from "lucide-react";
@@ -122,7 +124,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="mt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
-          <p>© {new Date().getFullYear()} BenefitBridge Initiative. Built for public empowerment.</p>
+          <p>© 2026 BenefitBridge Initiative. Built for public empowerment.</p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="hover:text-slate-400">
               Privacy & Consent Policy
